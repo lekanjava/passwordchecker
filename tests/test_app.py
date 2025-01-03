@@ -1,4 +1,4 @@
-from app import check_password_strength
+from passwordstrength.main import check_password_strength
 
 def test_password_strength():
     assert check_password_strength("12345678") == 2
