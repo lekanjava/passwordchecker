@@ -3,6 +3,14 @@ import re
 
 app = Flask(__name__)
 
+# Your existing code here...
+
+
+from flask import Flask, request, render_template
+import re
+
+app = Flask(__name__)
+
 # Common weak passwords list
 COMMON_PASSWORDS = ["123456", "password", "123456789", "qwerty", "abc123", "letmein"]
 
