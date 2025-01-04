@@ -6,10 +6,17 @@ app = Flask(__name__)
 # Common weak passwords list
 COMMON_PASSWORDS = ["123456", "password", "123456789", "qwerty", "abc123", "letmein"]
 
-def check_password_strength(password):
+def check_password_strength(password, return_numeric=False):
+    """
+    Checks the strength of a password.
+
+    :param password: The password to check.
+    :param return_numeric: If True, returns numeric strength values (1 = Weak, 2 = Moderate, 3 = Strong).
+    :return: Either a numeric value or a descriptive string.
+    """
     # Check length
     if len(password) < 8:
-        return "Weak (Password must be at least 8 characters long)"
+        return 1 if return_numeric else "Weak (Password must be at least 8 characters long)"
 
     # Check for uppercase, lowercase, numbers, and special characters
     has_upper = bool(re.search(r'[A-Z]', password))
@@ -19,15 +26,15 @@ def check_password_strength(password):
 
     # Check if password is in common passwords list
     if password in COMMON_PASSWORDS:
-        return "Weak (Common password detected)"
+        return 1 if return_numeric else "Weak (Common password detected)"
 
     # Evaluate strength
     if has_upper and has_lower and has_digit and has_special:
-        return "Strong"
-    elif has_upper or has_lower and has_digit:
-        return "Moderate"
+        return 3 if return_numeric else "Strong"
+    elif has_upper or (has_lower and has_digit):
+        return 2 if return_numeric else "Moderate"
     else:
-        return "Weak"
+        return 1 if return_numeric else "Weak"
 
 @app.route("/", methods=["GET", "POST"])
 def index():
