@@ -6,33 +6,66 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+    # Step 1: Checkout the repository
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # Step 2: Set up Python
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
+    # Step 3: Install dependencies
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
 
+    # Step 4: Add project to PYTHONPATH
     - name: Add project to PYTHONPATH
       run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
-        
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
+
+    # **New Step 5: Log in to Azure**
+    - name: Log in to Azure
+      uses: azure/login@v1
       with:
-        app-name: password-strength-checker-app # Replace with your Azure Web App name
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: .
-    
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    # **New Step 6: Log in to Azure Container Registry (ACR)**
+    - name: Log in to ACR
+      run: |
+        az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
 
-  #  - name: Run tests
-   #   run: pytest
+    # **New Step 7: Build the Docker image**
+    - name: Build Docker Image
+      run: |
+        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/password-strength-checker:latest .
+
+    # **New Step 8: Push the Docker image to ACR**
+    - name: Push Docker Image to ACR
+      run: |
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/password-strength-checker:latest
+
+    # **New Step 9: Deploy the container to Azure Container Instances**
+    - name: Deploy to Azure Container Instances
+      run: |
+        az container create \
+          --resource-group devops \
+          --name password-strength-checker-container \
+          --image ${{ secrets.ACR_LOGIN_SERVER }}/password-strength-checker:latest \
+          --cpu 1 \
+          --memory 1 \
+          --os-type Linux \
+          --registry-login-server ${{ secrets.ACR_LOGIN_SERVER }} \
+          --registry-username ${{ secrets.ACR_USERNAME }} \
+          --registry-password ${{ secrets.ACR_PASSWORD }} \
+          --ports 8000 \
+          --dns-name-label password-strength-checker-container
+
+    # Optional: Run tests
+    # - name: Run tests
+    #   run: pytest
